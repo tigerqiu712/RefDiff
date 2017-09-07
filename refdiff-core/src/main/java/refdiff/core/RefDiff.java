@@ -30,7 +30,7 @@ public class RefDiff implements GitRefactoringDetector {
         GitService gitService = new GitServiceImpl(); 
         try (Repository repo = gitService.openRepository(folder)) {
             GitRefactoringDetector detector = new RefDiff();
-            detector.detectAtCommit(repo, commitId, new RefactoringHandler() {
+            detector.detectAtCommit(repo, commitId,commitId, new RefactoringHandler() {
                 @Override
                 public void handle(RevCommit commitData, List<? extends Refactoring> refactorings) {
                     if (refactorings.isEmpty()) {
@@ -55,13 +55,14 @@ public class RefDiff implements GitRefactoringDetector {
      * Detect refactorings performed in the specified commit. 
      * 
      * @param repository A git repository (from JGit library).
-     * @param commitId The SHA key that identifies the commit.
+     * @param beforeCommitId The SHA key that identifies the commit.
+     * @param afterCommitId The SHA key that identifies the commit.
      * @return A list with the detected refactorings. 
      */
-    public List<SDRefactoring> detectAtCommit(Repository repository, String commitId) {
+    public List<SDRefactoring> detectAtCommit(Repository repository, String beforeCommitId,String afterCommitId) {
         List<SDRefactoring> result = new ArrayList<>();
         GitHistoryStructuralDiffAnalyzer sda = new GitHistoryStructuralDiffAnalyzer(config);
-        sda.detectAtCommit(repository, commitId, new StructuralDiffHandler() {
+        sda.detectAtCommit(repository, beforeCommitId,afterCommitId, new StructuralDiffHandler() {
             @Override
             public void handle(RevCommit commitData, SDModel sdModel) {
                 result.addAll(sdModel.getRefactorings());
@@ -100,9 +101,9 @@ public class RefDiff implements GitRefactoringDetector {
     }
 
     @Override
-    public void detectAtCommit(Repository repository, String commitId, RefactoringHandler handler) {
+    public void detectAtCommit(Repository repository, String beforeCommitId,String afterCommitId, RefactoringHandler handler) {
         GitHistoryStructuralDiffAnalyzer sda = new GitHistoryStructuralDiffAnalyzer(config);
-        sda.detectAtCommit(repository, commitId, new HandlerAdpater(handler));
+        sda.detectAtCommit(repository, beforeCommitId,afterCommitId, new HandlerAdpater(handler));
     }
 
     @Override

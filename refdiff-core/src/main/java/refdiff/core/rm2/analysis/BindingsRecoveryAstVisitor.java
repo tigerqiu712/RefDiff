@@ -1,6 +1,7 @@
 package refdiff.core.rm2.analysis;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -29,6 +30,7 @@ import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
+
 import refdiff.core.rm2.model.SDAttribute;
 import refdiff.core.rm2.model.SDContainerEntity;
 import refdiff.core.rm2.model.SDEntity;
@@ -52,9 +54,9 @@ public class BindingsRecoveryAstVisitor extends ASTVisitor {
     private final SourceRepresentationBuilder srbForTypes;
     private final SourceRepresentationBuilder srbForMethods;
     private final SourceRepresentationBuilder srbForAttributes;
-
+    private final Map<String, Map<Integer,Integer>> lineMethods ;
     public BindingsRecoveryAstVisitor(SDModel.Snapshot model, String sourceFilePath, char[] fileContent, SDPackage sdPackage, Map<SDEntity, List<String>> postProcessReferences,
-        Map<SDType, List<String>> postProcessSupertypes, Map<String, List<SourceRepresentation>> postProcessClientCode, SourceRepresentationBuilder srbForTypes, SourceRepresentationBuilder srbForMethods, SourceRepresentationBuilder srbForAttributes) {
+        Map<SDType, List<String>> postProcessSupertypes, Map<String, List<SourceRepresentation>> postProcessClientCode, SourceRepresentationBuilder srbForTypes, SourceRepresentationBuilder srbForMethods, SourceRepresentationBuilder srbForAttributes,Map<String, Map<Integer,Integer>> lineMethods) {
         this.model = model;
         this.sourceFilePath = sourceFilePath;
         this.fileContent = fileContent;
@@ -66,6 +68,7 @@ public class BindingsRecoveryAstVisitor extends ASTVisitor {
         this.srbForTypes = srbForTypes;
         this.srbForMethods = srbForMethods;
         this.srbForAttributes = srbForAttributes;
+        this.lineMethods=lineMethods;
     }
 
     @Override
@@ -183,15 +186,21 @@ public class BindingsRecoveryAstVisitor extends ASTVisitor {
         // {
         // System.out.println("x");
         //
-        // }
-
+        // }methodDeclaration
+        
+       
+    	
+        Map<Integer, Integer> innerMap = new HashMap<Integer, Integer>();
+        innerMap.put(methodDeclaration.getStartPosition(), methodDeclaration.getStartPosition()+methodDeclaration.getLength());
+        this.lineMethods.put(methodDeclaration.getName().toString(), innerMap);
+       
         final SDMethod method = model.createMethod(methodSignature, containerStack.peek(), methodDeclaration.isConstructor());
 
         List<?> modifiers = methodDeclaration.modifiers();
         Set<String> annotations = extractAnnotationTypes(modifiers);
         method.setTestAnnotation(annotations.contains("Test"));
         method.setDeprecatedAnnotation(annotations.contains("Deprecated") || AstUtils.containsDeprecatedTag(methodDeclaration.getJavadoc()));
-
+        
         int methodModifiers = methodDeclaration.getModifiers();
         Visibility visibility = getVisibility(methodModifiers);
 
@@ -206,6 +215,7 @@ public class BindingsRecoveryAstVisitor extends ASTVisitor {
         } else {
             //method.setSourceCode(srbForMethods.buildSourceRepresentation(this.fileContent, body.getStartPosition() + 1, body.getLength() - 2));
             method.setSourceCode(srbForMethods.buildSourceRepresentation(method, this.fileContent, body));
+           
             final List<String> references = new ArrayList<String>();
             body.accept(new DependenciesAstVisitor(true) {
                 @Override
@@ -218,7 +228,6 @@ public class BindingsRecoveryAstVisitor extends ASTVisitor {
                 protected void onFieldAccess(ASTNode node, IVariableBinding binding) {
                     String attributeKey = AstUtils.getKeyFromFieldBinding(binding);
                     references.add(attributeKey);
-
                     Statement stm = AstUtils.getEnclosingStatement(node);
                     // if (stm == null) {
                     // System.out.println("null");
@@ -228,6 +237,7 @@ public class BindingsRecoveryAstVisitor extends ASTVisitor {
                 }
 
             });
+           
             postProcessReferences.put(method, references);
         }
 
@@ -294,11 +304,13 @@ public class BindingsRecoveryAstVisitor extends ASTVisitor {
 
     public static void extractParametersAndReturnType(MethodDeclaration methodDeclaration, SDMethod method) {
         Type returnType = methodDeclaration.getReturnType2();
+        
         if (returnType != null) {
             method.setReturnType(AstUtils.normalizeTypeName(returnType, methodDeclaration.getExtraDimensions(), false));
         } else {
             method.setReturnType(null);
         }
+        
         Iterator<SingleVariableDeclaration> parameters = methodDeclaration.parameters().iterator();
         while (parameters.hasNext()) {
             SingleVariableDeclaration parameter = parameters.next();

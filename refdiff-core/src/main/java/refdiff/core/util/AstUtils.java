@@ -16,6 +16,8 @@ import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jdt.core.dom.TagElement;
 import org.eclipse.jdt.core.dom.Type;
 
+
+
 public class AstUtils {
 
 	private AstUtils() {
@@ -63,6 +65,17 @@ public class AstUtils {
 //		if (methodName.equals("allObjectsSorted")) {
 //			System.out.println();
 //		}
+		 IMethodBinding methodBinding= methodDeclaration.resolveBinding();
+		 
+
+	    org.eclipse.jdt.core.dom.IAnnotationBinding[] annots = methodBinding.getAnnotations();
+	    
+	   
+	    
+	    for (int j = 0; j < annots.length; j++) {  
+	    	    
+	    	  System.out.println(annots[j].toString());  
+	    	}
 		StringBuilder sb = new StringBuilder();
 		sb.append(methodName);
 		sb.append('(');

@@ -37,7 +37,10 @@ public interface GitService {
 
 	RevWalk createAllRevsWalk(Repository repository, String branch) throws Exception;
 
-	void fileTreeDiff(Repository repository, RevCommit currentCommit, List<String> filesBefore, List<String> filesCurrent, Map<String, String> renamedFilesHint, boolean detectRenames) throws Exception;
+	void fileTreeDiff(Repository repository, RevCommit currentCommit, String afterCommitId,List<String> filesBefore, List<String> filesCurrent, Map<String, String> renamedFilesHint, boolean detectRenames) throws Exception;
 
     RevCommit resolveCommit(Repository repository, String commitId) throws Exception;
+
+	Repository cloneIfNotExists(String projectPath, String cloneUrl,
+			String branch) throws Exception;
 }

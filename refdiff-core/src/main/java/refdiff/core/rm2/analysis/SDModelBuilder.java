@@ -5,8 +5,10 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
@@ -18,6 +20,7 @@ import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.FileASTRequestor;
 import org.eclipse.jdt.core.dom.PackageDeclaration;
 import org.eclipse.jdt.internal.compiler.util.Util;
+
 import refdiff.core.rm2.model.SDAttribute;
 import refdiff.core.rm2.model.SDEntity;
 import refdiff.core.rm2.model.SDModel;
@@ -164,8 +167,28 @@ public class SDModelBuilder {
 		  sourceFolder = sourceFilePath.substring(0, sourceFilePath.indexOf(packagePath));
 		}
 		SDPackage sdPackage = model.getOrCreatePackage(packageName, sourceFolder);
-		BindingsRecoveryAstVisitor visitor = new BindingsRecoveryAstVisitor(model, sourceFilePath, fileContent, sdPackage, postProcessReferences, postProcessSupertypes, postProcessClientCode, srbForTypes, srbForMethods, srbForAttributes);
+		Map<String, Map<Integer,Integer>> lineMethods= new HashMap<String, Map<Integer,Integer>>();
+		System.out.println("KeysourceFilePath"+sourceFilePath);
+		BindingsRecoveryAstVisitor visitor = new BindingsRecoveryAstVisitor(model, sourceFilePath, fileContent, sdPackage, postProcessReferences, postProcessSupertypes, postProcessClientCode, srbForTypes, srbForMethods, srbForAttributes,lineMethods);
+		
 		compilationUnit.accept(visitor);
+
+        Iterator<Map.Entry<String, Map<Integer,Integer>>> entries = lineMethods.entrySet().iterator();
+        while (entries.hasNext()) {  
+        	  
+            Map.Entry<String, Map<Integer,Integer>> entry = entries.next();  
+          
+            System.out.println("Key = " + entry.getKey() + ", Value = " + entry.getValue()); 
+             Map<Integer,Integer> entryLines =entry.getValue();
+            
+             
+            int lineNumber = compilationUnit.getLineNumber(entryLines.entrySet().iterator().next().getKey()) - 1;
+    		System.out.println("Modify lines from   "+lineNumber); 
+    	    lineNumber = compilationUnit.getLineNumber(entryLines.entrySet().iterator().next().getValue()) - 1;
+     		System.out.println("Modify lines to   "+lineNumber); 
+  
+        }  
+		
 	}
 
 	private String[] inferSourceFolders(String[] filesArray) {

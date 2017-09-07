@@ -25,6 +25,7 @@ import org.eclipse.jgit.revwalk.filter.RevFilter;
 import org.eclipse.jgit.transport.FetchResult;
 import org.eclipse.jgit.transport.TrackingRefUpdate;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
+import org.eclipse.jgit.api.CreateBranchCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,7 +39,7 @@ public class GitServiceImpl implements GitService {
 	DefaultCommitsFilter commitsFilter = new DefaultCommitsFilter();
 	
 	@Override
-	public Repository cloneIfNotExists(String projectPath, String cloneUrl/*, String branch*/) throws Exception {
+	public Repository cloneIfNotExists(String projectPath, String cloneUrl, String branch) throws Exception {
 		File folder = new File(projectPath);
 		Repository repository;
 		if (folder.exists()) {
@@ -49,7 +50,7 @@ public class GitServiceImpl implements GitService {
 					.findGitDir()
 					.build();
 			
-			//logger.info("Project {} is already cloned, current branch is {}", cloneUrl, repository.getBranch());
+			logger.info("Project {} is already cloned, current branch is {}", cloneUrl, repository.getBranch());
 			
 		} else {
 			logger.info("Cloning {} ...", cloneUrl);
@@ -59,36 +60,35 @@ public class GitServiceImpl implements GitService {
 					.setCloneAllBranches(true)
 					.call();
 			repository = git.getRepository();
-			//logger.info("Done cloning {}, current branch is {}", cloneUrl, repository.getBranch());
+			logger.info("Done cloning {}, current branch is {}", cloneUrl, repository.getBranch());
 		}
 
-//		if (branch != null && !repository.getBranch().equals(branch)) {
-//			Git git = new Git(repository);
-//			
-//			String localBranch = "refs/heads/" + branch;
-//			List<Ref> refs = git.branchList().call();
-//			boolean branchExists = false;
-//			for (Ref ref : refs) {
-//				if (ref.getName().equals(localBranch)) {
-//					branchExists = true;
-//				}
-//			}
-//			
-//			if (branchExists) {
-//				git.checkout()
-//					.setName(branch)
-//					.call();
-//			} else {
-//				git.checkout()
-//					.setCreateBranch(true)
-//					.setName(branch)
-//					.setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK)
-//					.setStartPoint("origin/" + branch)
-//					.call();
-//			}
-//			
-//			logger.info("Project {} switched to {}", cloneUrl, repository.getBranch());
-//		}
+		if (branch != null && !repository.getBranch().equals(branch)) {
+			Git git = new Git(repository);
+			
+			String localBranch = "refs/heads/" + branch;
+			List<Ref> refs = git.branchList().call();
+			boolean branchExists = false;
+			for (Ref ref : refs) {
+				if (ref.getName().equals(localBranch)) {
+					branchExists = true;
+				}
+			}
+			
+			if (branchExists) {
+				git.checkout()
+					.setName(branch)
+					.call();
+			} else {
+				git.checkout()
+					.setCreateBranch(true)
+					.setName(branch)
+					.setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK)
+					.setStartPoint("origin/" + branch)
+					.call();
+			}
+			logger.info("Project {} switched to {}", cloneUrl, repository.getBranch());
+		}
 		return repository;
 	}
 
@@ -246,14 +246,25 @@ public class GitServiceImpl implements GitService {
 	}
 	
 	@Override
-	public void fileTreeDiff(Repository repository, RevCommit current, List<String> javaFilesBefore, List<String> javaFilesCurrent, Map<String, String> renamedFilesHint, boolean detectRenames) throws Exception {
-        ObjectId oldHead = current.getParent(0).getTree();
-        ObjectId head = current.getTree();
-
-        // prepare the two iterators to compute the diff between
-		ObjectReader reader = repository.newObjectReader();
-		CanonicalTreeParser oldTreeIter = new CanonicalTreeParser();
-		oldTreeIter.reset(reader, oldHead);
+	public void fileTreeDiff(Repository repository, RevCommit current,String afterCommitId, List<String> javaFilesBefore, List<String> javaFilesCurrent, Map<String, String> renamedFilesHint, boolean detectRenames) throws Exception {
+     
+	    ObjectId head = current.getTree();
+	    
+		
+	    // prepare the two iterators to compute the diff between
+	  		ObjectReader reader = repository.newObjectReader(); 
+	  		CanonicalTreeParser oldTreeIter = new CanonicalTreeParser();
+   
+      //RevWalk walk = new RevWalk(repository);
+      		try (RevWalk walk = new RevWalk(repository)) {
+      			RevCommit commit = walk.parseCommit(repository.resolve(afterCommitId));
+      			ObjectId oldHead = commit.getTree();
+      			oldTreeIter.reset(reader, oldHead); 
+      		} catch (Exception e) {
+      		    logger.warn(String.format("Ignored revision %s due to error", afterCommitId), e);
+              }
+      		
+   		
 		CanonicalTreeParser newTreeIter = new CanonicalTreeParser();
 		newTreeIter.reset(reader, head);
 		// finally get the list of changed files
@@ -293,5 +304,60 @@ public class GitServiceImpl implements GitService {
 	
 	private boolean isJavafile(String path) {
 		return path.endsWith(".java");
+	}
+
+	@Override
+	public Repository cloneIfNotExists(String projectPath, String cloneUrl/*, String branch*/) throws Exception {
+		File folder = new File(projectPath);
+		Repository repository;
+		if (folder.exists()) {
+			RepositoryBuilder builder = new RepositoryBuilder();
+			repository = builder
+					.setGitDir(new File(folder, ".git"))
+					.readEnvironment()
+					.findGitDir()
+					.build();
+			
+			//logger.info("Project {} is already cloned, current branch is {}", cloneUrl, repository.getBranch());
+			
+		} else {
+			logger.info("Cloning {} ...", cloneUrl);
+			Git git = Git.cloneRepository()
+					.setDirectory(folder)
+					.setURI(cloneUrl)
+					.setCloneAllBranches(true)
+					.call();
+			repository = git.getRepository();
+			//logger.info("Done cloning {}, current branch is {}", cloneUrl, repository.getBranch());
+		}
+
+//		if (branch != null && !repository.getBranch().equals(branch)) {
+//			Git git = new Git(repository);
+//			
+//			String localBranch = "refs/heads/" + branch;
+//			List<Ref> refs = git.branchList().call();
+//			boolean branchExists = false;
+//			for (Ref ref : refs) {
+//				if (ref.getName().equals(localBranch)) {
+//					branchExists = true;
+//				}
+//			}
+//			
+//			if (branchExists) {
+//				git.checkout()
+//					.setName(branch)
+//					.call();
+//			} else {
+//				git.checkout()
+//					.setCreateBranch(true)
+//					.setName(branch)
+//					.setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK)
+//					.setStartPoint("origin/" + branch)
+//					.call();
+//			}
+//			
+//			logger.info("Project {} switched to {}", cloneUrl, repository.getBranch());
+//		}
+		return repository;
 	}
 }
