@@ -1,7 +1,9 @@
 package refdiff.core;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
@@ -19,6 +21,9 @@ import refdiff.core.rm2.model.refactoring.SDRefactoring;
 import refdiff.core.util.GitServiceImpl;
 
 public class RefDiff implements GitRefactoringDetector {
+	   
+	public Map<String, Map<Integer,Integer>> LineMethods= new HashMap<String, Map<Integer,Integer>>();
+
 
     public static void main(String[] args) throws Exception {
         if (args.length != 2) {
@@ -68,6 +73,9 @@ public class RefDiff implements GitRefactoringDetector {
                 result.addAll(sdModel.getRefactorings());
             }
         });
+        LineMethods.clear();
+        LineMethods.putAll(sda.beforelLineMethods);
+        LineMethods.putAll(sda.afterLineMethods);
         return result;
     }
 

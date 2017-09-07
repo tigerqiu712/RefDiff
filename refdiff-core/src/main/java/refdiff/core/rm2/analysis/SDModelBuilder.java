@@ -49,6 +49,7 @@ public class SDModelBuilder {
 	private Map<SDEntity, List<String>> postProcessReferences;
 	private Map<SDType, List<String>> postProcessSupertypes;
 	private Map<String, List<SourceRepresentation>> postProcessClientCode;
+    public Map<String, Map<Integer,Integer>> lineMethods= new HashMap<String, Map<Integer,Integer>>();
 
 	private void postProcessReferences(final SDModel.Snapshot model, Map<? extends SDEntity, List<String>> referencesMap) {
 	    for (Map.Entry<? extends SDEntity, List<String>> entry : referencesMap.entrySet()) {
@@ -167,26 +168,23 @@ public class SDModelBuilder {
 		  sourceFolder = sourceFilePath.substring(0, sourceFilePath.indexOf(packagePath));
 		}
 		SDPackage sdPackage = model.getOrCreatePackage(packageName, sourceFolder);
-		Map<String, Map<Integer,Integer>> lineMethods= new HashMap<String, Map<Integer,Integer>>();
-		System.out.println("KeysourceFilePath"+sourceFilePath);
-		BindingsRecoveryAstVisitor visitor = new BindingsRecoveryAstVisitor(model, sourceFilePath, fileContent, sdPackage, postProcessReferences, postProcessSupertypes, postProcessClientCode, srbForTypes, srbForMethods, srbForAttributes,lineMethods);
+	
+		Map<String, Map<Integer,Integer>> locallineMethods= new HashMap<String, Map<Integer,Integer>>();
+
+		BindingsRecoveryAstVisitor visitor = new BindingsRecoveryAstVisitor(model, sourceFilePath, fileContent, sdPackage, postProcessReferences, postProcessSupertypes, postProcessClientCode, srbForTypes, srbForMethods, srbForAttributes,locallineMethods);
 		
 		compilationUnit.accept(visitor);
-
-        Iterator<Map.Entry<String, Map<Integer,Integer>>> entries = lineMethods.entrySet().iterator();
+	
+        Iterator<Map.Entry<String, Map<Integer,Integer>>> entries = locallineMethods.entrySet().iterator();
         while (entries.hasNext()) {  
         	  
             Map.Entry<String, Map<Integer,Integer>> entry = entries.next();  
-          
-            System.out.println("Key = " + entry.getKey() + ", Value = " + entry.getValue()); 
-             Map<Integer,Integer> entryLines =entry.getValue();
-            
-             
-            int lineNumber = compilationUnit.getLineNumber(entryLines.entrySet().iterator().next().getKey()) - 1;
-    		System.out.println("Modify lines from   "+lineNumber); 
-    	    lineNumber = compilationUnit.getLineNumber(entryLines.entrySet().iterator().next().getValue()) - 1;
-     		System.out.println("Modify lines to   "+lineNumber); 
-  
+            Map<Integer, Integer> innerMap = new HashMap<Integer, Integer>();
+            Map<Integer,Integer> entryLines =entry.getValue();
+            int lineNumberkey = compilationUnit.getLineNumber(entryLines.entrySet().iterator().next().getKey()) - 1;
+    	    int lineNumbervalue = compilationUnit.getLineNumber(entryLines.entrySet().iterator().next().getValue()) - 1;
+    	    innerMap.put(lineNumberkey, lineNumbervalue);
+            lineMethods.put(sourceFilePath+'#'+entry.getKey(), innerMap);
         }  
 		
 	}

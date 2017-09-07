@@ -30,8 +30,10 @@ public class GitHistoryStructuralDiffAnalyzer {
         this.config = config;
     }
 
-   
-	
+	public Map<String, Map<Integer,Integer>> beforelLineMethods= new HashMap<String, Map<Integer,Integer>>();
+
+	public Map<String, Map<Integer,Integer>> afterLineMethods= new HashMap<String, Map<Integer,Integer>>();
+
 
 	public void detectAtCommit(Repository repository, String beforeCommitId,String afterCommitId, StructuralDiffHandler handler) {
 		File metadataFolder = repository.getDirectory();
@@ -68,12 +70,14 @@ public class GitHistoryStructuralDiffAnalyzer {
 	    if (folderAfter.exists()) {
 	        logger.info(String.format("Analyzing code after (%s) ...", commitId));
 	        builder.analyzeAfter(folderAfter, filesCurrent);
+	        
 	    } else {
 	        gitService.checkout(repository, commitId);
 	        logger.info(String.format("Analyzing code after (%s) ...", commitId));
 	        builder.analyzeAfter(projectFolder, filesCurrent);
 	    }
-	
+	    beforelLineMethods.clear();
+	    beforelLineMethods.putAll(builder.lineMethods);
 	    String parentCommit =  afterCommit;
 		File folderBefore = new File(projectFolder.getParentFile(), "v0/" + projectFolder.getName() + "-" + commitId.substring(0, 7));
 		if (folderBefore.exists()) {
@@ -86,6 +90,8 @@ public class GitHistoryStructuralDiffAnalyzer {
 		    builder.analyzeBefore(projectFolder, filesBefore);
 		}
 //		}
+	    beforelLineMethods.putAll(builder.lineMethods);
+		
 		final SDModel model = builder.buildModel();
 		handler.handle(currentCommit, model);
 	}
