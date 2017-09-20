@@ -174,15 +174,14 @@ public class SDModelBuilder {
 		BindingsRecoveryAstVisitor visitor = new BindingsRecoveryAstVisitor(model, sourceFilePath, fileContent, sdPackage, postProcessReferences, postProcessSupertypes, postProcessClientCode, srbForTypes, srbForMethods, srbForAttributes,locallineMethods);
 		
 		compilationUnit.accept(visitor);
-	
         Iterator<Map.Entry<String, Map<Integer,Integer>>> entries = locallineMethods.entrySet().iterator();
         while (entries.hasNext()) {  
         	  
             Map.Entry<String, Map<Integer,Integer>> entry = entries.next();  
             Map<Integer, Integer> innerMap = new HashMap<Integer, Integer>();
             Map<Integer,Integer> entryLines =entry.getValue();
-            int lineNumberkey = compilationUnit.getLineNumber(entryLines.entrySet().iterator().next().getKey()) - 1;
-    	    int lineNumbervalue = compilationUnit.getLineNumber(entryLines.entrySet().iterator().next().getValue()) - 1;
+            int lineNumberkey = compilationUnit.getLineNumber(entryLines.entrySet().iterator().next().getKey()) ;
+    	    int lineNumbervalue = compilationUnit.getLineNumber(entryLines.entrySet().iterator().next().getValue()) ;
     	    innerMap.put(lineNumberkey, lineNumbervalue);
             lineMethods.put(sourceFilePath+'#'+entry.getKey(), innerMap);
         }  
