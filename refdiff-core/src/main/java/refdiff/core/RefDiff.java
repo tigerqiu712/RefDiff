@@ -74,7 +74,7 @@ public class RefDiff implements GitRefactoringDetector {
             }
         });
         LineMethods.clear();
-        LineMethods.putAll(sda.beforelLineMethods);
+        //LineMethods.putAll(sda.beforelLineMethods);
         LineMethods.putAll(sda.afterLineMethods);
         return result;
     }
