@@ -61,7 +61,7 @@ public class GitHistoryStructuralDiffAnalyzer {
 		// only ADD's or only REMOVE's there is no refactoring
 		System.out.println(filesBefore);
 		System.out.println(filesCurrent);
-		SDModelBuilder builder = new SDModelBuilder(config);
+		SDModelBuilder builderbefore = new SDModelBuilder(config);
 		if (filesBefore.isEmpty() || filesCurrent.isEmpty()) {
 		    return;
 		}
@@ -69,30 +69,46 @@ public class GitHistoryStructuralDiffAnalyzer {
 	    File folderAfter = new File(projectFolder.getParentFile(), "v1/" + projectFolder.getName() + "-" + commitId.substring(0, 7));
 	    if (folderAfter.exists()) {
 	        logger.info(String.format("Analyzing code after (%s) ...", commitId));
-	        builder.analyzeAfter(folderAfter, filesCurrent);
+	        builderbefore.analyzeAfter(folderAfter, filesCurrent);
 	        
 	    } else {
 	        gitService.checkout(repository, commitId);
 	        logger.info(String.format("Analyzing code after (%s) ...", commitId));
-	        builder.analyzeAfter(projectFolder, filesCurrent);
+	        builderbefore.analyzeAfter(projectFolder, filesCurrent);
 	    }
 	    beforelLineMethods.clear();
-	    beforelLineMethods.putAll(builder.lineMethods);
+	    beforelLineMethods.putAll(builderbefore.lineMethods);
+	    SDModelBuilder builderafter = new SDModelBuilder(config);
 	    String parentCommit =  afterCommit;
 		File folderBefore = new File(projectFolder.getParentFile(), "v0/" + projectFolder.getName() + "-" + commitId.substring(0, 7));
 		if (folderBefore.exists()) {
 		    logger.info(String.format("Analyzing code before (%s) ...", parentCommit));
-            builder.analyzeBefore(folderBefore, filesBefore);
+		    builderafter.analyzeBefore(folderBefore, filesBefore);
 		} else {
 		    // Checkout and build model for parent commit
 		    gitService.checkout(repository, parentCommit);
 		    logger.info(String.format("Analyzing code before (%s) ...", parentCommit));
-		    builder.analyzeBefore(projectFolder, filesBefore);
+		    builderafter.analyzeBefore(projectFolder, filesBefore);
 		}
 //		}
-	    beforelLineMethods.putAll(builder.lineMethods);
-		
-		final SDModel model = builder.buildModel();
+		afterLineMethods.clear();
+		afterLineMethods.putAll(builderafter.lineMethods);
+		Iterator<Map.Entry<String, Map<Integer,Integer>>> entries =afterLineMethods.entrySet().iterator() ;
+        while (entries.hasNext()) {  
+        	  
+            Map.Entry<String, Map<Integer,Integer>> entry = entries.next();  
+          
+            System.out.println("afterLineMethods Key = " + entry.getKey() + ", Value = " + entry.getValue()); 
+             Map<Integer,Integer> entryLines =entry.getValue();
+            
+             
+            int lineNumber = entryLines.entrySet().iterator().next().getKey();
+    		System.out.println("afterLineMethods Modify lines from   "+lineNumber); 
+    	    lineNumber = entryLines.entrySet().iterator().next().getValue() ;
+     		System.out.println("afterLineMethods Modify lines to   "+lineNumber); 
+  
+        }  	
+		final SDModel model = builderafter.buildModel();
 		handler.handle(currentCommit, model);
 	}
 
