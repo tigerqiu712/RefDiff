@@ -192,8 +192,10 @@ public class BindingsRecoveryAstVisitor extends ASTVisitor {
     	
         Map<Integer, Integer> innerMap = new HashMap<Integer, Integer>();
         innerMap.put(methodDeclaration.getStartPosition(), methodDeclaration.getStartPosition()+methodDeclaration.getLength());
-        this.lineMethods.put(methodDeclaration.getName().toString(), innerMap);
-       
+        this.lineMethods.put(methodDeclaration.getName().toString()+"@@"+methodDeclaration.getStartPosition(), innerMap);
+        System.out.println("getFullyQualifiedName="+methodDeclaration.getName().getFullyQualifiedName().toString());
+        System.out.println("getIdentifier="+methodDeclaration.getName().getIdentifier().toString());
+        
         final SDMethod method = model.createMethod(methodSignature, containerStack.peek(), methodDeclaration.isConstructor());
 
         List<?> modifiers = methodDeclaration.modifiers();
@@ -221,6 +223,7 @@ public class BindingsRecoveryAstVisitor extends ASTVisitor {
                 @Override
                 protected void onMethodAccess(ASTNode node, IMethodBinding binding) {
                     String methodKey = AstUtils.getKeyFromMethodBinding(binding);
+                    System.out.println("methodKey="+methodKey);
                     references.add(methodKey);
                 }
 
