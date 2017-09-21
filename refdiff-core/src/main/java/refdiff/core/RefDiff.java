@@ -2,6 +2,7 @@ package refdiff.core;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -23,6 +24,7 @@ import refdiff.core.util.GitServiceImpl;
 public class RefDiff implements GitRefactoringDetector {
 	   
 	public Map<String, Map<Integer,Integer>> LineMethods= new HashMap<String, Map<Integer,Integer>>();
+	public LinkedHashMap<String, String> MethodsBody = new LinkedHashMap<String, String>();
 
 
     public static void main(String[] args) throws Exception {
@@ -74,8 +76,10 @@ public class RefDiff implements GitRefactoringDetector {
             }
         });
         LineMethods.clear();
-        //LineMethods.putAll(sda.beforelLineMethods);
+        LineMethods.putAll(sda.beforelLineMethods);
         LineMethods.putAll(sda.afterLineMethods);
+        MethodsBody.clear();
+        MethodsBody.putAll(sda.MethodsBody);
         return result;
     }
 
